@@ -58,7 +58,7 @@
 //! cargo test -p zilog-z80 --test bus_pin_waveform
 //! ```
 
-use zilog_z80::Z80;
+use emu198x_zilog_z80::Z80;
 
 /// Tick the CPU one half-cycle at a time and record what the next chip on
 /// the bus would see: the phase that ran, and the pins as they stand
@@ -380,13 +380,13 @@ fn io_read_data_latch_lead_is_two_tstates() {
     );
     assert_eq!(
         (halfcycles / 2) as u32,
-        zilog_z80::IO_READ_DATA_LATCH_LEAD_TSTATES,
+        emu198x_zilog_z80::IO_READ_DATA_LATCH_LEAD_TSTATES,
         "the waveform puts the data latch {} T-states after the /IORQ edge, \
          not the {} `IO_READ_DATA_LATCH_LEAD_TSTATES` claims. The constant \
          is derived from this cycle's geometry — update it here, in this \
          commit, with the pin change that moved it.",
         halfcycles / 2,
-        zilog_z80::IO_READ_DATA_LATCH_LEAD_TSTATES,
+        emu198x_zilog_z80::IO_READ_DATA_LATCH_LEAD_TSTATES,
     );
 }
 

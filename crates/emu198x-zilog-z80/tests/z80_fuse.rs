@@ -16,11 +16,11 @@
 
 mod support;
 
+use emu198x_zilog_z80::Z80;
+use emu198x_zilog_z80::mcycle::{self, MStep};
+use emu198x_zilog_z80::walker::Prefix;
+use emu198x_zilog_z80::z80::{InternalPhase, IoPhase, M1Phase, MemPhase, Phase};
 use support::find_fuse_z80_tests_dir;
-use zilog_z80::Z80;
-use zilog_z80::mcycle::{self, MStep};
-use zilog_z80::walker::Prefix;
-use zilog_z80::z80::{InternalPhase, IoPhase, M1Phase, MemPhase, Phase};
 
 const FUSE_CASE_ENV: &str = "EMU198X_FUSE_Z80_CASE";
 const FUSE_LIMIT_ENV: &str = "EMU198X_FUSE_Z80_LIMIT";

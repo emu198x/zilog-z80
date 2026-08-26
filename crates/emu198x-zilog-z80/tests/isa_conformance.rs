@@ -14,7 +14,7 @@
 //! the shared surface: where isa renders a data byte (`dc.b`/`defb`) we can't
 //! adjudicate, so we skip and count it.
 
-use zilog_z80::disassemble;
+use emu198x_zilog_z80::disassemble;
 
 fn emu_one(buf: &[u8]) -> (String, usize) {
     let data = buf.to_vec();

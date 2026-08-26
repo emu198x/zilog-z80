@@ -1,5 +1,5 @@
-use zilog_z80::Z80;
-use zilog_z80::registers::*;
+use emu198x_zilog_z80::Z80;
+use emu198x_zilog_z80::registers::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct IoWrite {
@@ -419,8 +419,8 @@ fn inc_dec_8bit() {
 
     run(&mut z80, &mut mem, 1000);
     assert_eq!(z80.regs.a(), 0x00);
-    assert!(z80.regs.flag(zilog_z80::registers::FLAG_Z));
-    assert!(z80.regs.flag(zilog_z80::registers::FLAG_H));
+    assert!(z80.regs.flag(emu198x_zilog_z80::registers::FLAG_Z));
+    assert!(z80.regs.flag(emu198x_zilog_z80::registers::FLAG_H));
 }
 
 #[test]

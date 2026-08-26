@@ -10,8 +10,8 @@ mod support;
 
 use std::path::{Path, PathBuf};
 
+use emu198x_zilog_z80::Z80;
 use support::find_zex_binary;
-use zilog_z80::Z80;
 
 const ZEX_CHECKPOINT_LABELS: [&str; 67] = [
     "<adc,sbc> hl,<bc,de,hl,sp>....",

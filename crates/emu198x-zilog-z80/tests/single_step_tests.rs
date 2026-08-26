@@ -6,11 +6,11 @@
 /// Run with: cargo test -p zilog-z80 --test single_step_tests -- --ignored --nocapture
 mod support;
 
+use emu198x_zilog_z80::Z80;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
 use support::find_tom_harte_z80_dir;
-use zilog_z80::Z80;
 
 #[derive(Deserialize)]
 struct TestCase {
