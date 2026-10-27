@@ -1,0 +1,156 @@
+name: Nightly accuracy
+
+# External CPU and chip corpora too large, or too dependent on assets, to gate
+# every push. They moved here from emu198x/emu198x's nightly-accuracy.yml with
+# the crates they test. The tests are ignored by default because the corpora
+# are not in this repository; a private release store delivers them, and its
+# checksums are verified. The store is a cache, not their provenance or a grant
+# of redistribution rights: see emu198x/emu198x test-data/accuracy-corpora.md.
+on:
+  schedule:
+    - cron: '40 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-accuracy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # ACCURACY_CORPORA_REPO is an Actions variable, ACCURACY_CORPORA_TOKEN a
+  # read-only secret; ACCURACY_CORPORA_TAG defaults to v1.
+  CORPORA_REPO: ${{ vars.ACCURACY_CORPORA_REPO }}
+  CORPORA_TAG: ${{ vars.ACCURACY_CORPORA_TAG || 'v1' }}
+  # Every job provisions its fixtures, so a skip here means provisioning
+  # failed. emu198x-test-skip makes that a failure instead of a pass.
+  EMU198X_STRICT_FIXTURES: "1"
+
+jobs:
+  # Secrets can't be read in a job-level `if`. On a fork without the store
+  # everything skips; on the canonical repository a missing store fails.
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - name: Check corpora store is configured
+        id: check
+        env:
+          TOKEN: ${{ secrets.ACCURACY_CORPORA_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "${CORPORA_REPO}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            if [ "${{ github.repository }}" = "emu198x/zilog-z80" ]; then
+              echo "::error::Corpora store not configured (ACCURACY_CORPORA_TOKEN secret and/or ACCURACY_CORPORA_REPO variable unset)."
+              exit 1
+            fi
+            echo "::warning::Corpora store not configured on this fork. Corpus jobs skipped."
+          fi
+
+  harte-z80:
+    name: harte-z80
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: needs.preflight.outputs.configured == 'true'
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read pinned toolchain
+        id: toolchain
+        run: echo "channel=$(awk -F'"' '/^channel/{print $2}' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+
+      - name: Provision corpus from store
+        env:
+          GH_TOKEN: ${{ secrets.ACCURACY_CORPORA_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p corpora
+          cd corpora
+          gh release download "${CORPORA_TAG}" -R "${CORPORA_REPO}" \
+            -p 'harte-z80.tar.zst' -p 'SHA256SUMS'
+          grep ' harte-z80.tar.zst$' SHA256SUMS | sha256sum -c -
+          tar --zstd -xf 'harte-z80.tar.zst'
+          echo "EMU198X_Z80_TOM_HARTE_DIR=$(pwd)/harte-z80" >> "$GITHUB_ENV"
+
+      - name: Run harte-z80
+        run: cargo test --release -p emu198x-zilog-z80 --test single_step_tests run_all -- --include-ignored --nocapture
+
+  fuse-z80:
+    name: fuse-z80
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: needs.preflight.outputs.configured == 'true'
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read pinned toolchain
+        id: toolchain
+        run: echo "channel=$(awk -F'"' '/^channel/{print $2}' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+
+      - name: Provision corpus from store
+        env:
+          GH_TOKEN: ${{ secrets.ACCURACY_CORPORA_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p corpora
+          cd corpora
+          gh release download "${CORPORA_TAG}" -R "${CORPORA_REPO}" \
+            -p 'fuse-z80.tar.zst' -p 'SHA256SUMS'
+          grep ' fuse-z80.tar.zst$' SHA256SUMS | sha256sum -c -
+          tar --zstd -xf 'fuse-z80.tar.zst'
+          echo "EMU198X_FUSE_Z80_TESTS_DIR=$(pwd)/fuse-z80" >> "$GITHUB_ENV"
+
+      - name: Run fuse-z80
+        run: cargo test --release -p emu198x-zilog-z80 --test z80_fuse -- --include-ignored --nocapture
+
+  zex:
+    name: zex
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: needs.preflight.outputs.configured == 'true'
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read pinned toolchain
+        id: toolchain
+        run: echo "channel=$(awk -F'"' '/^channel/{print $2}' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+
+      - name: Provision corpus from store
+        env:
+          GH_TOKEN: ${{ secrets.ACCURACY_CORPORA_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p corpora
+          cd corpora
+          gh release download "${CORPORA_TAG}" -R "${CORPORA_REPO}" \
+            -p 'zex.tar.zst' -p 'SHA256SUMS'
+          grep ' zex.tar.zst$' SHA256SUMS | sha256sum -c -
+          tar --zstd -xf 'zex.tar.zst'
+          echo "EMU198X_ZEX_DIR=$(pwd)/zex" >> "$GITHUB_ENV"
+
+      - name: Run zex
+        run: cargo test --release -p emu198x-zilog-z80 --test zex_tests -- --include-ignored --skip checkpoint --nocapture
