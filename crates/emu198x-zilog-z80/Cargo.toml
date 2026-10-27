@@ -17,11 +17,7 @@ categories = ["emulators"]
 serde = { workspace = true }
 
 [dev-dependencies]
-# Path-only on purpose. A dev-dependency carrying a version must resolve
-# on the registry at publish time; without one cargo strips it from the
-# published manifest, so this crate's release never waits on the helper's.
-# It takes the published version when it moves to its own repository (#1997).
-emu198x-test-skip = { path = "../emu198x-test-skip" }
+emu198x-test-skip = "0.1"
 postcard = { workspace = true }
 serde_json = "1"
 # Isa198x disassembler, used only by the isa_conformance cross-check test
