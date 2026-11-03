@@ -718,15 +718,15 @@ impl Z80 {
                 self.phase = Phase::M1(M1Phase::T2Rise);
             }
             M1Phase::T2Rise => {
-                // Data available on bus — latch it
-                // (Machine should have set data_in by now)
-                // Check WAIT — if asserted, stay in this state
-                if self.wait {
-                    return; // Insert wait state — don't advance
-                }
                 self.phase = Phase::M1(M1Phase::T2Fall);
             }
             M1Phase::T2Fall => {
+                // UM0080: WAIT is sampled on the falling edge. Revisit
+                // both halves of TW, holding address/data and strobes.
+                if self.wait {
+                    self.phase = Phase::M1(M1Phase::T2Rise);
+                    return;
+                }
                 // Latch the opcode byte. `/MREQ` and `/RD` stay low: Zilog
                 // UM0080's opcode-fetch diagram releases them on the rising
                 // edge of `T3`, half a T-state after this one, so they span
@@ -907,12 +907,15 @@ impl Z80 {
                 self.phase = Phase::MemRead(MemPhase::T2Rise);
             }
             MemPhase::T2Rise => {
-                if self.wait {
-                    return; // Wait state
-                }
                 self.phase = Phase::MemRead(MemPhase::T2Fall);
             }
             MemPhase::T2Fall => {
+                // UM0080: WAIT is sampled on the falling edge. Revisit
+                // both halves of TW, holding address/data and strobes.
+                if self.wait {
+                    self.phase = Phase::MemRead(MemPhase::T2Rise);
+                    return;
+                }
                 // Keep strobes asserted until T3 falling. The machine has
                 // supplied data before that final edge latches the read.
                 self.phase = Phase::MemRead(MemPhase::T3Rise);
@@ -945,9 +948,6 @@ impl Z80 {
                 self.phase = Phase::MemWrite(MemPhase::T2Rise);
             }
             MemPhase::T2Rise => {
-                if self.wait {
-                    return;
-                }
                 self.phase = Phase::MemWrite(MemPhase::T2Fall);
             }
             MemPhase::T2Fall => {
@@ -957,6 +957,12 @@ impl Z80 {
                 // SpecIde asserts it in `ST_MEMWR_T2L_WAITST`, the same
                 // half-cycle.
                 self.wr = true;
+                // UM0080: WAIT is sampled on the falling edge. Revisit
+                // both halves of TW, holding address/data and strobes.
+                if self.wait {
+                    self.phase = Phase::MemWrite(MemPhase::T2Rise);
+                    return;
+                }
                 self.phase = Phase::MemWrite(MemPhase::T3Rise);
             }
             MemPhase::T3Rise => {
@@ -997,12 +1003,15 @@ impl Z80 {
                 self.phase = Phase::Contend(MemPhase::T2Rise);
             }
             MemPhase::T2Rise => {
-                if self.wait {
-                    return;
-                }
                 self.phase = Phase::Contend(MemPhase::T2Fall);
             }
             MemPhase::T2Fall => {
+                // UM0080: WAIT is sampled on the falling edge. Revisit
+                // both halves of TW, holding address/data and strobes.
+                if self.wait {
+                    self.phase = Phase::Contend(MemPhase::T2Rise);
+                    return;
+                }
                 self.phase = Phase::Contend(MemPhase::T3Rise);
             }
             MemPhase::T3Rise => {
@@ -1037,15 +1046,18 @@ impl Z80 {
             }
             IoPhase::T2Fall => {
                 // Strobes asserted at T2 rising remain active through TW.
-                if self.wait {
-                    return; // I/O wait state
-                }
                 self.phase = Phase::IoRead(IoPhase::T3Rise);
             }
             IoPhase::T3Rise => {
                 self.phase = Phase::IoRead(IoPhase::T3Fall);
             }
             IoPhase::T3Fall => {
+                // Figure 7: T3 here is the automatic TW (T4 is hardware
+                // T3). Sample only after decoding time, then add full TWs.
+                if self.wait {
+                    self.phase = Phase::IoRead(IoPhase::T3Rise);
+                    return;
+                }
                 self.phase = Phase::IoRead(IoPhase::T4Rise);
             }
             IoPhase::T4Rise => {
@@ -1080,15 +1092,18 @@ impl Z80 {
             }
             IoPhase::T2Fall => {
                 // Strobes asserted at T2 rising remain active through TW.
-                if self.wait {
-                    return;
-                }
                 self.phase = Phase::IoWrite(IoPhase::T3Rise);
             }
             IoPhase::T3Rise => {
                 self.phase = Phase::IoWrite(IoPhase::T3Fall);
             }
             IoPhase::T3Fall => {
+                // Figure 7: T3 here is the automatic TW (T4 is hardware
+                // T3). Sample only after decoding time, then add full TWs.
+                if self.wait {
+                    self.phase = Phase::IoWrite(IoPhase::T3Rise);
+                    return;
+                }
                 self.phase = Phase::IoWrite(IoPhase::T4Rise);
             }
             IoPhase::T4Rise => {
@@ -1139,12 +1154,15 @@ impl Z80 {
                 self.phase = Phase::NmiAck(NmiAckPhase::T2Rise);
             }
             NmiAckPhase::T2Rise => {
-                if self.wait {
-                    return;
-                }
                 self.phase = Phase::NmiAck(NmiAckPhase::T2Fall);
             }
             NmiAckPhase::T2Fall => {
+                // UM0080: WAIT is sampled on the falling edge. Revisit
+                // both halves of TW, holding address/data and strobes.
+                if self.wait {
+                    self.phase = Phase::NmiAck(NmiAckPhase::T2Rise);
+                    return;
+                }
                 self.mreq = false;
                 self.rd = false;
                 self.phase = Phase::NmiAck(NmiAckPhase::T3Rise);
