@@ -24,6 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preserve accepted NMI and INT sequence identity across mid-response snapshot restore
 - Extend interrupt acknowledge by a complete TW for each asserted WAIT sample
 
+## [0.9.0](https://github.com/emu198x/zilog-z80/releases/tag/emu198x-zilog-z80-v0.9.0) - 2026-11-04
+
+### Fixed
+
+- **Breaking timing contract:** sample physical WAIT on the documented falling
+  edge and insert complete TW pairs; preserve the automatic I/O decoding TW
+  and keep refresh running. Short pulses ending before the sampling edge do
+  not stall the CPU. Machines driving WAIT must qualify their execution before
+  upgrading. CPU serialized fields and phase order are unchanged.
+- Spectrum adopts this release for its Amstrad physical WAIT path. CPC remains
+  on 0.8 until its timing and saved continuation are qualified separately.
+
 ## [0.2.0](https://github.com/emu198x/emu198x/releases/tag/zilog-z80-v0.2.0) - 2026-06-04
 
 ### Added
