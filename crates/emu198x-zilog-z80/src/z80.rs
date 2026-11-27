@@ -81,10 +81,15 @@ pub struct Z80 {
     /// Data bus for reads. Machine must set this before the next tick
     /// when the Z80 is performing a read (mreq && rd, or iorq && rd).
     pub data_in: u8,
-    /// Wait. When asserted, the Z80 inserts wait states at specific
-    /// half-cycles (T2 rise of memory accesses). Used by +2A/+3 gate
-    /// array for WAIT-based contention. The Ferranti ULA uses clock
-    /// gating instead (doesn't call tick at all).
+    /// Physical WAIT input. Set it before each scheduled CPU edge.
+    ///
+    /// Memory reads, writes and opcode fetches sample it at T2 falling.
+    /// I/O cycles sample it at the end of their automatic TW. Each
+    /// accepted sample of asserted WAIT inserts a complete TW.
+    ///
+    /// This is the pin driven by the Spectrum +2A/+2B/+3 gate array.
+    /// The Ferranti ULA models contention by holding the CPU clock
+    /// instead of driving this pin.
     pub wait: bool,
     /// Maskable interrupt request. Level-triggered. Checked at the end
     /// of each instruction when IFF1 is set.
